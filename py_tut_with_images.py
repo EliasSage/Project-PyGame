@@ -34,6 +34,7 @@ class Player(pygame.sprite.Sprite):
         self.rect = self.surf.get_rect()
 
         self.bullet_timer = 1 # Shooting cooldown (in seconds)
+        self.score = 0
 
 
     def shoot(self, position, velocity):
@@ -282,6 +283,9 @@ while running:
         new_explosion = Explosion(bullet.rect.center)
         explosions.add(new_explosion)
         all_sprites.add(new_explosion)
+
+        player.score += 10
+        print(player.score)
 
     # Flip everything to the display
     pygame.display.flip()
