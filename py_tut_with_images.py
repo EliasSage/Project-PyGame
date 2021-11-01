@@ -124,7 +124,7 @@ class Cloud(pygame.sprite.Sprite):
 
 
 class Bullet(pygame.sprite.Sprite):
-    """ Extends pygame.sprite.Sprite class and handles aspects specific to player bullets"""
+    """ Extends pygame.sprite.Sprite class and handles aspects specific to player bullets """
     def __init__(self, position, velocity):
         super(Bullet, self).__init__()
         self.surf = pygame.image.load("player_missile.png").convert()
@@ -140,6 +140,22 @@ class Bullet(pygame.sprite.Sprite):
         if self.rect.left > SCREEN_WIDTH:
             self.kill()
 
+
+class Explosion(pygame.sprite.Sprite):
+    """ Extends pygame.sprite.Sprite class and handles aspects specific to explosions """
+    def __init__(self, position):
+        super(Explosion, self).__init__()
+        self.surf = pygame.image.load("explosion.png").convert()
+        self.surf.set_colorkey((0, 0, 0), RLEACCEL)
+        self.rect = self.surf.get_rect(center=(position))
+        self.lifetime = .5 # How long the explosions will stay (in seconds)
+
+    def update(self):
+        """ Update explosion timer """
+        self.lifetime -= 1/30 if self.lifetime > 0 else self.lifetime
+
+        if self.lifetime <= 0: # When lifetime runs out, remove explosion
+            self.kill()
 
 # Setup for sounds, defaults are good
 pygame.mixer.init()
@@ -167,10 +183,12 @@ player = Player()
 # - enemies is used for collision detection and position updates
 # - clouds is used for position updates
 # - bullets is used for position updates
+# - explosions is used for lifetime updates on explosions
 # - all_sprites isused for rendering
 enemies = pygame.sprite.Group()
 clouds = pygame.sprite.Group()
 bullets = pygame.sprite.Group()
+explosions = pygame.sprite.Group()
 all_sprites = pygame.sprite.Group()
 all_sprites.add(player)
 
@@ -197,7 +215,6 @@ running = True
 
 # Our main loop
 while running:
-    print(bullets)
     # Look at every event in the queue
     for event in pygame.event.get():
         # Did the user hit a key?
@@ -235,6 +252,8 @@ while running:
     # Update the positions of bullets
     bullets.update()
 
+    explosions.update()
+
     # Fill the screen with sky blue
     screen.fill((135, 206, 250))
 
@@ -254,6 +273,15 @@ while running:
 
         # Stop the loop
         running = False
+
+    # Check if any bullets have collided with an enemy and removes both if so
+    bullet_col = pygame.sprite.groupcollide(bullets, enemies, True, True)
+
+    # For every collision, create an explosion at give position
+    for bullet in bullet_col.keys():
+        new_explosion = Explosion(bullet.rect.center)
+        explosions.add(new_explosion)
+        all_sprites.add(new_explosion)
 
     # Flip everything to the display
     pygame.display.flip()
