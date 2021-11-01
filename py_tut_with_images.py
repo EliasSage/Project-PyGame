@@ -137,6 +137,9 @@ class Bullet(pygame.sprite.Sprite):
         """ Update bullet speed """
         self.rect.move_ip(self.velocity, 0)
 
+        if self.rect.left > SCREEN_WIDTH:
+            self.kill()
+
 
 # Setup for sounds, defaults are good
 pygame.mixer.init()
@@ -194,6 +197,7 @@ running = True
 
 # Our main loop
 while running:
+    print(bullets)
     # Look at every event in the queue
     for event in pygame.event.get():
         # Did the user hit a key?
