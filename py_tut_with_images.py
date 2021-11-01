@@ -16,6 +16,7 @@ from pygame.locals import (
     K_ESCAPE,
     KEYDOWN,
     QUIT,
+    K_SPACE
 )
 
 # Define constants for the screen width and height
@@ -31,6 +32,18 @@ class Player(pygame.sprite.Sprite):
         self.surf = pygame.image.load("jet.png").convert()
         self.surf.set_colorkey((255, 255, 255), RLEACCEL)
         self.rect = self.surf.get_rect()
+
+        self.bullet_timer = 1 # Shooting cooldown (in seconds)
+
+
+    def shoot(self, position, velocity):
+        """ Makes plane shoot missile """
+        if self.bullet_timer <= 0: # Shoots if not on cooldown      
+            self.bullet_timer = 1 # Resets cooldown 
+            bullet = Bullet(position, velocity)
+            bullets.add(bullet)
+            all_sprites.add(bullet)
+
 
     # Move the sprite based on keypresses
     def update(self, pressed_keys):
@@ -54,6 +67,13 @@ class Player(pygame.sprite.Sprite):
             self.rect.top = 0
         elif self.rect.bottom >= SCREEN_HEIGHT:
             self.rect.bottom = SCREEN_HEIGHT
+
+        # Shoots when space is pressed
+        if pressed_keys[K_SPACE]:
+            self.shoot(self.rect.midright, 5)
+
+        # Reduces shooting cooldown by (1 / framerate) per frame, if on cooldown
+        self.bullet_timer -= 1/30 if self.bullet_timer > 0 else self.bullet_timer
 
 
 # Define the enemy object extending pygame.sprite.Sprite
@@ -103,6 +123,21 @@ class Cloud(pygame.sprite.Sprite):
             self.kill()
 
 
+class Bullet(pygame.sprite.Sprite):
+    """ Extends pygame.sprite.Sprite class and handles aspects specific to player bullets"""
+    def __init__(self, position, velocity):
+        super(Bullet, self).__init__()
+        self.surf = pygame.image.load("player_missile.png").convert()
+        self.surf.set_colorkey((0, 0, 0), RLEACCEL)
+        self.velocity = velocity
+        # Position is dependent on where plane was when shot
+        self.rect = self.surf.get_rect(center=(position))
+
+    def update(self):
+        """ Update bullet speed """
+        self.rect.move_ip(self.velocity, 0)
+
+
 # Setup for sounds, defaults are good
 pygame.mixer.init()
 
@@ -128,11 +163,14 @@ player = Player()
 # Create groups to hold enemy sprites, cloud sprites, and all sprites
 # - enemies is used for collision detection and position updates
 # - clouds is used for position updates
+# - bullets is used for position updates
 # - all_sprites isused for rendering
 enemies = pygame.sprite.Group()
 clouds = pygame.sprite.Group()
+bullets = pygame.sprite.Group()
 all_sprites = pygame.sprite.Group()
 all_sprites.add(player)
+
 
 # Load and play our background music
 # Sound source: http://ccmixter.org/files/Apoxode/59262
@@ -189,6 +227,9 @@ while running:
     # Update the position of our enemies and clouds
     enemies.update()
     clouds.update()
+
+    # Update the positions of bullets
+    bullets.update()
 
     # Fill the screen with sky blue
     screen.fill((135, 206, 250))
