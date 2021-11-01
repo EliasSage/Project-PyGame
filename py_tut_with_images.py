@@ -19,6 +19,7 @@ from pygame.locals import (
     K_SPACE
 )
 
+
 # Define constants for the screen width and height
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
@@ -171,6 +172,9 @@ clock = pygame.time.Clock()
 # The size is determined by the constant SCREEN_WIDTH and SCREEN_HEIGHT
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
+# Import from other files
+import scorescreen
+
 # Create custom events for adding a new enemy and cloud
 ADDENEMY = pygame.USEREVENT + 1
 pygame.time.set_timer(ADDENEMY, 250)
@@ -213,9 +217,13 @@ collision_sound.set_volume(0.5)
 
 # Variable to keep our main loop running
 running = True
+score_screen = False
 
 # Our main loop
 while running:
+    # Code that runs during score screen
+    while score_screen:
+        (score_screen, running) = scorescreen.display_screen(screen, player.score)
     # Look at every event in the queue
     for event in pygame.event.get():
         # Did the user hit a key?
@@ -273,7 +281,7 @@ while running:
         collision_sound.play()
 
         # Stop the loop
-        running = False
+        score_screen = True
 
     # Check if any bullets have collided with an enemy and removes both if so
     bullet_col = pygame.sprite.groupcollide(bullets, enemies, True, True)
