@@ -29,7 +29,7 @@ def display_screen(screen, score):
             return (False, False)
 
         if event.type == KEYDOWN and event.key == K_RETURN:
-            return (False, False)
+            return (False, True)
 
     # Fill screen with black
     screen.fill((0, 0, 0))

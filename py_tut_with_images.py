@@ -166,6 +166,25 @@ class Explosion(pygame.sprite.Sprite):
         if self.lifetime <= 0: # When lifetime runs out, remove explosion
             self.kill()
 
+
+def reset():
+    """ Resets game data and returns new player object """
+    # Print blank line to separate score displays
+    print()
+
+    # Empty sprite groups
+    enemies.empty()
+    clouds.empty()
+    bullets.empty()
+    explosions.empty()
+    all_sprites.empty()
+
+    # Reset player data
+    player = Player()
+    all_sprites.add(player)
+
+    return player
+
 # Setup for sounds, defaults are good
 pygame.mixer.init()
 
@@ -230,7 +249,8 @@ score_screen = False
 while running:
     # Code that runs during score screen
     while score_screen:
-        (score_screen, running) = scorescreen.display_screen(screen, player.score)
+        (score_screen, running) = scorescreen.display_screen(screen, final_score)
+
     # Look at every event in the queue
     for event in pygame.event.get():
         # Did the user hit a key?
@@ -297,7 +317,9 @@ while running:
             move_down_sound.stop()
             collision_sound.play()
 
-            # Go to score screen
+            # Go to score screen and reset game
+            final_score = player.score
+            player = reset()
             score_screen = True
 
     # Check if any bullets have collided with an enemy and removes both if so
