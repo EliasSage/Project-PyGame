@@ -24,6 +24,9 @@ from pygame.locals import (
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 
+# Define framerate 
+# Higher values (300+) may cause issues with movement
+FRAMERATE = 60
 
 # Define the Player object extending pygame.sprite.Sprite
 # Instead of a surface, we use an image for a better looking sprite
@@ -48,17 +51,20 @@ class Player(pygame.sprite.Sprite):
 
 
     # Move the sprite based on keypresses
+    # Velocity is rounded to reduce truncation errors at higher framerates and make
+    # movement more precise at all framerates, due to how Rect objects truncate all decimals
+    # Multiply velocity by step to make it independent of framerate (as much as possible)
     def update(self, pressed_keys):
         if pressed_keys[K_UP]:
-            self.rect.move_ip(0, -5)
+            self.rect.move_ip(0, round(-5 * step))
             move_up_sound.play()
         if pressed_keys[K_DOWN]:
-            self.rect.move_ip(0, 5)
+            self.rect.move_ip(0, round(5 * step))
             move_down_sound.play()
         if pressed_keys[K_LEFT]:
-            self.rect.move_ip(-5, 0)
+            self.rect.move_ip(round(-5 * step), 0)
         if pressed_keys[K_RIGHT]:
-            self.rect.move_ip(5, 0)
+            self.rect.move_ip(round(5 * step), 0)
 
         # Keep player on the screen
         if self.rect.left < 0:
@@ -75,7 +81,7 @@ class Player(pygame.sprite.Sprite):
             self.shoot(self.rect.midright, 5)
 
         # Reduces shooting cooldown by (1 / framerate) per frame, if on cooldown
-        self.bullet_timer -= 1/30 if self.bullet_timer > 0 else self.bullet_timer
+        self.bullet_timer -= 1/FRAMERATE if self.bullet_timer > 0 else self.bullet_timer
 
 
 # Define the enemy object extending pygame.sprite.Sprite
@@ -97,7 +103,7 @@ class Enemy(pygame.sprite.Sprite):
     # Move the enemy based on speed
     # Remove it when it passes the left edge of the screen
     def update(self):
-        self.rect.move_ip(-self.speed, 0)
+        self.rect.move_ip(round(-self.speed * step), 0)
         if self.rect.right < 0:
             self.kill()
 
@@ -120,7 +126,7 @@ class Cloud(pygame.sprite.Sprite):
     # Move the cloud based on a constant speed
     # Remove it when it passes the left edge of the screen
     def update(self):
-        self.rect.move_ip(-5, 0)
+        self.rect.move_ip(round(-5 * step), 0)
         if self.rect.right < 0:
             self.kill()
 
@@ -137,7 +143,7 @@ class Bullet(pygame.sprite.Sprite):
 
     def update(self):
         """ Update bullet speed """
-        self.rect.move_ip(self.velocity, 0)
+        self.rect.move_ip(round(self.velocity * step), 0)
 
         if self.rect.left > SCREEN_WIDTH:
             self.kill()
@@ -154,7 +160,7 @@ class Explosion(pygame.sprite.Sprite):
 
     def update(self):
         """ Update explosion timer """
-        self.lifetime -= 1/30 if self.lifetime > 0 else self.lifetime
+        self.lifetime -= 1/FRAMERATE if self.lifetime > 0 else self.lifetime
 
         if self.lifetime <= 0: # When lifetime runs out, remove explosion
             self.kill()
@@ -258,9 +264,8 @@ while running:
     enemies.update()
     clouds.update()
 
-    # Update the positions of bullets
+    # Update the bullets and explosions
     bullets.update()
-
     explosions.update()
 
     # Fill the screen with sky blue
@@ -299,7 +304,8 @@ while running:
     pygame.display.flip()
 
     # Ensure we maintain a 30 frames per second rate
-    clock.tick(30)
+    delta = clock.tick(FRAMERATE)
+    step = delta / 25 # Delta measures in milliseconds, therefore make step a bit smaller
 
 # At this point, we're done, so we can stop and quit the mixer
 pygame.mixer.music.stop()
