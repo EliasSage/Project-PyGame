@@ -37,6 +37,7 @@ class Player(pygame.sprite.Sprite):
         self.surf.set_colorkey((255, 255, 255), RLEACCEL)
         self.rect = self.surf.get_rect()
 
+        self.health = 3
         self.bullet_timer = 1 # Shooting cooldown (in seconds)
         self.score = 0
 
@@ -151,12 +152,12 @@ class Bullet(pygame.sprite.Sprite):
 
 class Explosion(pygame.sprite.Sprite):
     """ Extends pygame.sprite.Sprite class and handles aspects specific to explosions """
-    def __init__(self, position):
+    def __init__(self, position, lifetime):
         super(Explosion, self).__init__()
         self.surf = pygame.image.load("explosion.png").convert()
         self.surf.set_colorkey((0, 0, 0), RLEACCEL)
         self.rect = self.surf.get_rect(center=(position))
-        self.lifetime = .5 # How long the explosions will stay (in seconds)
+        self.lifetime = lifetime # How long the explosions will stay (in seconds)
 
     def update(self):
         """ Update explosion timer """
@@ -276,24 +277,35 @@ while running:
         screen.blit(entity.surf, entity.rect)
 
     # Check if any enemies have collided with the player
-    if pygame.sprite.spritecollideany(player, enemies):
-        # If so, remove the player
-        player.kill()
-
-        # Stop any moving sounds and play the collision sound
-        move_up_sound.stop()
-        move_down_sound.stop()
+    player_col = pygame.sprite.spritecollide(player, enemies, True)
+    
+    if player_col:
+        # If so, reduce the player's HP
+        player.health -= 1
         collision_sound.play()
 
-        # Stop the loop
-        score_screen = True
+        new_explosion = Explosion(player.rect.center, .25)
+        explosions.add(new_explosion)
+        all_sprites.add(new_explosion)
+
+        # If out of HP, end game
+        if player.health <= 0:
+            player.kill()
+
+            # Stop any moving sounds and play the collision sound
+            move_up_sound.stop()
+            move_down_sound.stop()
+            collision_sound.play()
+
+            # Go to score screen
+            score_screen = True
 
     # Check if any bullets have collided with an enemy and removes both if so
     bullet_col = pygame.sprite.groupcollide(bullets, enemies, True, True)
 
     # For every collision, create an explosion at give position
     for bullet in bullet_col.keys():
-        new_explosion = Explosion(bullet.rect.center)
+        new_explosion = Explosion(bullet.rect.center, .5)
         explosions.add(new_explosion)
         all_sprites.add(new_explosion)
 
@@ -303,9 +315,9 @@ while running:
     # Flip everything to the display
     pygame.display.flip()
 
-    # Ensure we maintain a 30 frames per second rate
+    # Ensure we maintain a FRAMERATE frames per second rate
     delta = clock.tick(FRAMERATE)
-    step = delta / 25 # Delta measures in milliseconds, therefore make step a bit smaller
+    step = delta / 25 # Can be tweaked to change velocities
 
 # At this point, we're done, so we can stop and quit the mixer
 pygame.mixer.music.stop()
