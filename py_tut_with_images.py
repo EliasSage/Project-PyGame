@@ -167,6 +167,32 @@ class Explosion(pygame.sprite.Sprite):
             self.kill()
 
 
+class Boss(pygame.sprite.Sprite):
+    """ Extends pygame.sprite.Sprite class and handles aspects specific to Boss """
+    def __init__(self, x, y, boss_move_up):
+        super(Boss, self).__init__()
+        self.surf = pygame.image.load("boss.png").convert_alpha()
+        self.surf.set_colorkey((0, 0, 0), RLEACCEL)
+        self.rect = self.surf.get_rect(center=(x, y)) # x and y set when boss is created
+        self.move_up = boss_move_up # If boss should move up or not
+    
+    def update(self):
+        # If boss should move up or not is changed when certian values are reached
+        if self.rect.bottom == 650:
+            self.move_up = True
+        if self.rect.top == -50:
+            self.move_up = False
+
+        # Makes boss fly in on screen
+        if self.rect.left > 600:
+            self.rect.move_ip(round(-2 * step), 0)
+        # Moves boss up or down 
+        elif self.move_up == True:
+            self.rect.move_ip(round(0),-2 * step)
+        else:
+            self.rect.move_ip(round(0),2 * step)
+                        
+
 def reset():
     """ Resets game data and returns new player object """
     # Print blank line to separate score displays
@@ -177,6 +203,7 @@ def reset():
     clouds.empty()
     bullets.empty()
     explosions.empty()
+    boss.empty()
     all_sprites.empty()
 
     # Reset player data
@@ -220,9 +247,9 @@ enemies = pygame.sprite.Group()
 clouds = pygame.sprite.Group()
 bullets = pygame.sprite.Group()
 explosions = pygame.sprite.Group()
+boss = pygame.sprite.Group()
 all_sprites = pygame.sprite.Group()
 all_sprites.add(player)
-
 
 # Load and play our background music
 # Sound source: http://ccmixter.org/files/Apoxode/59262
@@ -244,6 +271,8 @@ collision_sound.set_volume(0.5)
 # Variable to keep our main loop running
 running = True
 score_screen = False
+# Variable used when boss spawns
+boss_exists = False
 
 # Our main loop
 while running:
@@ -288,6 +317,9 @@ while running:
     # Update the bullets and explosions
     bullets.update()
     explosions.update()
+
+    # Update the boss
+    boss.update()
 
     # Fill the screen with sky blue
     screen.fill((135, 206, 250))
@@ -334,6 +366,14 @@ while running:
         player.score += 10
         print(player.score)
 
+    # Creates boss at fixed position when plyer.score reaches 10
+    if boss_exists == False and player.score == 10:
+        spawn_boss = Boss(1000, 300, False)
+        boss.add(spawn_boss)
+        all_sprites.add(spawn_boss)
+        # to make sure multible bosses doesn't spawn
+        boss_exists = True
+        
     # Flip everything to the display
     pygame.display.flip()
 
