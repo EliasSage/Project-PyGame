@@ -502,11 +502,11 @@ while running:
         explosions.add(new_explosion)
         all_sprites.add(new_explosion)
 
-        print(player.score)
-
+        player.score += 10
+        
         # Spawn powerup 
-        if random.randint(1, 10) >= 1:
-            power = random.randint(2, 2)
+        if random.randint(1, 10) >= 8:
+            power = random.randint(1, 2)
             if power == 1:
                 powerup = PowerUp("HP", bullet.rect.center)
             elif power == 2:
