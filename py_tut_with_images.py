@@ -18,14 +18,14 @@ from pygame.locals import (
     QUIT,
     K_SPACE
 )
-
+#from pygame.music import play
 
 # Define constants for the screen width and height
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 
 # Define framerate 
-# Higher values (120+) may cause issues with movement
+# Higher values may cause issues with movement
 FRAMERATE = 60
 
 # Define the Player object extending pygame.sprite.Sprite
@@ -38,14 +38,15 @@ class Player(pygame.sprite.Sprite):
         self.rect = self.surf.get_rect()
 
         self.health = 3
-        self.bullet_timer = 1 # Shooting cooldown (in seconds)
+        self.cooldown = 1
+        self.bullet_timer = self.cooldown # Shooting cooldown (in seconds)
         self.score = 0
 
 
     def shoot(self, position, velocity):
         """ Makes plane shoot missile """
         if self.bullet_timer <= 0: # Shoots if not on cooldown      
-            self.bullet_timer = 1 # Resets cooldown 
+            self.bullet_timer = self.cooldown # Resets cooldown 
             bullet = Bullet(position, velocity)
             bullets.add(bullet)
             all_sprites.add(bullet)
@@ -166,6 +167,48 @@ class Explosion(pygame.sprite.Sprite):
         if self.lifetime <= 0: # When lifetime runs out, remove explosion
             self.kill()
 
+#This enemy is much faster than the player and can fire but can only move up and down
+class Gunner(pygame.sprite.Sprite):
+    """ Extends pygame.sprite.Sprite class and handles aspects specific to Gunner """
+    def __init__(self, x, gunner_move_up):
+        super(Gunner, self).__init__()
+        self.surf = pygame.image.load("spitfire_gunner.png").convert()
+        self.surf.set_colorkey((255, 255, 255), RLEACCEL)
+        self.rect = self.surf.get_rect(
+            center=(
+                x,
+                random.randint(0, SCREEN_HEIGHT),
+            )
+        )
+        self.move_up = gunner_move_up # If gunner should move up or not
+        
+    def update(self):
+        # If Gunner should move up or not is changed when certain values are reached
+        if self.rect.bottom == SCREEN_HEIGHT:
+            self.move_up = True
+        if self.rect.top == 0:
+            self.move_up = False
+
+        # Makes gunner fly in on screen
+        if self.rect.left > 650:
+            self.rect.move_ip(round(-3 * step), 0)
+        # Moves gunner move up or down 
+        elif self.move_up == True:
+            self.rect.move_ip(0, round(-6 * step))
+        else:
+            self.rect.move_ip(0, round(6 * step))
+
+        # Keep gunner on the screen
+        if self.rect.left < 0:
+            self.rect.left = 0
+        elif self.rect.right > SCREEN_WIDTH:
+            self.rect.right = SCREEN_WIDTH
+        if self.rect.top <= 0:
+            self.rect.top = 0
+        elif self.rect.bottom >= SCREEN_HEIGHT:
+            self.rect.bottom = SCREEN_HEIGHT
+                        
+
 
 class Boss(pygame.sprite.Sprite):
     """ Extends pygame.sprite.Sprite class and handles aspects specific to Boss """
@@ -191,7 +234,46 @@ class Boss(pygame.sprite.Sprite):
             self.rect.move_ip(0,round(-2 * step))
         else:
             self.rect.move_ip(0,round(2 * step))
-                                   
+
+
+class PowerUp(pygame.sprite.Sprite):
+    def __init__(self, power, position):
+        super(PowerUp, self).__init__()
+        self.power = power
+
+        if self.power == "HP":
+            self.surf = pygame.image.load("health.png").convert()
+        elif self.power == "DMG":
+            self.surf = pygame.image.load("ammo.png").convert()
+
+        self.surf.set_colorkey((0, 0, 0), RLEACCEL)
+        self.rect = self.surf.get_rect(center=(position))
+        self.activated = False
+        self.timer = 0
+        self.lifetime = 3
+
+    def activate(self):
+        if self.power == "HP":
+            player.health += 1
+        elif self.power == "DMG":
+            self.activated = True
+            self.timer = 4
+            player.bullet_timer = 0
+            player.cooldown = 0.3
+
+    def deactivate(self):
+        player.cooldown = 1
+
+    def update(self):
+        self.lifetime -= 1/FRAMERATE if self.lifetime > 0 else self.lifetime
+        self.timer -= 1/FRAMERATE if self.timer > 0 else self.timer
+
+        if self.timer <= 0:
+            self.deactivate()
+
+        if self.lifetime <= 0: # When lifetime runs out, remove explosion
+            self.kill()
+                                    
 
 def reset():
     """ Resets game data and returns new player object """
@@ -204,6 +286,7 @@ def reset():
     bullets.empty()
     explosions.empty()
     boss.empty()
+    gunner.empty()
     all_sprites.empty()
 
     # Reset player data
@@ -248,6 +331,8 @@ clouds = pygame.sprite.Group()
 bullets = pygame.sprite.Group()
 explosions = pygame.sprite.Group()
 boss = pygame.sprite.Group()
+gunner = pygame.sprite.Group()
+powerups = pygame.sprite.Group()
 all_sprites = pygame.sprite.Group()
 all_sprites.add(player)
 
@@ -271,15 +356,19 @@ collision_sound.set_volume(0.5)
 # Variable to keep our main loop running
 running = True
 score_screen = False
-
-# Variable used when boss spawns
+won = False
+# Variable used when enemies spawns
 boss_exists = False
+gunner_exists = False
+gunner_count = 0
+
+start=pygame.time.get_ticks()
 
 # Our main loop
 while running:
     # Code that runs during score screen
     while score_screen:
-        (score_screen, running) = scorescreen.display_screen(screen, final_score)
+        (score_screen, running, won) = scorescreen.display_screen(screen, final_score, won)
 
     # Look at every event in the queue
     for event in pygame.event.get():
@@ -311,16 +400,16 @@ while running:
     pressed_keys = pygame.key.get_pressed()
     player.update(pressed_keys)
 
-    # Update the position of our enemies and clouds
+    # Updates 
     enemies.update()
     clouds.update()
-
-    # Update the bullets and explosions
     bullets.update()
     explosions.update()
-
-    # Update the boss
+    powerups.update()
     boss.update()
+
+    # Update Gunner
+    gunner.update()
 
     # Fill the screen with sky blue
     screen.fill((135, 206, 250))
@@ -331,6 +420,10 @@ while running:
 
     # Check if any enemies have collided with the player
     player_col = pygame.sprite.spritecollide(player, enemies, True)
+
+    # Check if player has collided with gunner
+    gunner_col = pygame.sprite.spritecollide(player, gunner, True)
+
     # Check if player has collided with boss
     playerboss_col = pygame.sprite.spritecollide(player, boss, False)
 
@@ -338,13 +431,12 @@ while running:
         # If so, reduce the player's HP
         player.health -= 1
         collision_sound.play()
-
         new_explosion = Explosion(player.rect.center, .25)
         explosions.add(new_explosion)
         all_sprites.add(new_explosion)
 
     # If out of HP or collided with boss, end game
-    if player.health <= 0 or playerboss_col:
+    if player.health <= 0 or playerboss_col or gunner_col:
         player.kill()
 
         # Stop any moving sounds and play the collision sound
@@ -358,10 +450,19 @@ while running:
         player = reset()
         score_screen = True
 
+
     # Check if any bullets have collided with an enemy and removes both if so
     bullet_col = pygame.sprite.groupcollide(bullets, enemies, True, True)
+    gunner_col = pygame.sprite.groupcollide(bullets, gunner, True, True)
+    
 
-    # For every collision, create an explosion at give position
+    if gunner_col:
+        collision_sound.play()
+        gunner_count -=1
+        explosions.add(new_explosion)
+        all_sprites.add(new_explosion)
+
+    # For every collision, create an explosion at given position
     for bullet in bullet_col.keys():
         new_explosion = Explosion(bullet.rect.center, .5)
         explosions.add(new_explosion)
@@ -370,8 +471,34 @@ while running:
         player.score += 10
         print(player.score)
 
+        # Spawn powerup 
+        if random.randint(1, 10) >= 9:
+            power = random.randint(1, 2)
+            if power == 1:
+                powerup = PowerUp("HP", bullet.rect.center)
+            elif power == 2:
+                powerup = PowerUp("DMG", bullet.rect.center)
+
+            powerups.add(powerup)
+            all_sprites.add(powerup)
+        
+    powerup_col = pygame.sprite.spritecollide(player, powerups, True)
+
+    if powerup_col:
+        for powerup in powerup_col:
+            powerup.activate()
+    
+    now = pygame.time.get_ticks()
+    # Creates a new gunner every 5 seconds and a maximum of 6 at once
+    if now - start > 5000 and gunner_count < 6:
+        start = now
+        spawn_gunner = Gunner(1000, False)
+        gunner.add(spawn_gunner)
+        all_sprites.add(spawn_gunner)
+        gunner_count +=1 #Add gunner count to represent capacity to gunner maximum
+
     # Creates boss at fixed position when plyer.score reaches 10
-    if boss_exists == False and player.score == 10:
+    if boss_exists == False and player.score == 200:
         spawn_boss = Boss(1000, 300, False)
         boss.add(spawn_boss)
         all_sprites.add(spawn_boss)
@@ -391,6 +518,7 @@ while running:
 
         if spawn_boss.health <= 0:
             player.score += 500
+            won = True
 
             spawn_boss.kill()
             player.kill()
@@ -404,6 +532,7 @@ while running:
             player = reset()
             score_screen = True
         
+
     # Flip everything to the display
     pygame.display.flip()
 
