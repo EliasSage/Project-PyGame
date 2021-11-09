@@ -217,7 +217,7 @@ class Boss(pygame.sprite.Sprite):
         self.surf = pygame.image.load("boss.png").convert_alpha()
         self.rect = self.surf.get_rect(center=(x, y)) # x and y set when boss is created
         self.move_up = boss_move_up # If boss should move up or not
-        self.health = 5
+        self.health = 50
     
     def update(self):
         # If boss should move up or not is changed when certian values are reached
@@ -456,9 +456,10 @@ while running:
     gunner_col = pygame.sprite.groupcollide(bullets, gunner, True, True)
     
 
-    if gunner_col:
+    for bullet in gunner_col.keys():
         collision_sound.play()
         gunner_count -=1
+        new_explosion = Explosion(bullet.rect.center, .5)
         explosions.add(new_explosion)
         all_sprites.add(new_explosion)
 
