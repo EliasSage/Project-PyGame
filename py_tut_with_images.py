@@ -4,8 +4,6 @@ import pygame
 # Import random for random numbers
 import random
 
-import math
-
 # Import pygame.locals for easier access to key coordinates
 # Updated to conform to flake8 and black standards
 # from pygame.locals import *
@@ -193,7 +191,7 @@ class Boss(pygame.sprite.Sprite):
             self.rect.move_ip(0,round(-2 * step))
         else:
             self.rect.move_ip(0,round(2 * step))
-                                    
+                                   
 
 def reset():
     """ Resets game data and returns new player object """
@@ -273,6 +271,7 @@ collision_sound.set_volume(0.5)
 # Variable to keep our main loop running
 running = True
 score_screen = False
+
 # Variable used when boss spawns
 boss_exists = False
 
@@ -355,6 +354,7 @@ while running:
 
         # Go to score screen and reset game
         final_score = player.score
+        boss_exists = False
         player = reset()
         score_screen = True
 
@@ -400,6 +400,7 @@ while running:
             collision_sound.play()
 
             final_score = player.score
+            boss_exists = False
             player = reset()
             score_screen = True
         
@@ -409,7 +410,7 @@ while running:
     # Ensure we maintain a FRAMERATE frames per second rate
     delta = clock.tick(FRAMERATE)
     step = delta / 25 # Can be tweaked to change velocities
-    
+
 # At this point, we're done, so we can stop and quit the mixer
 pygame.mixer.music.stop()
 pygame.mixer.quit()
