@@ -457,6 +457,8 @@ while running:
     
 
     for bullet in gunner_col.keys():
+        player.score += 20
+        print(player.score)
         collision_sound.play()
         gunner_count -=1
         new_explosion = Explosion(bullet.rect.center, .5)
