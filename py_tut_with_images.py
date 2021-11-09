@@ -18,7 +18,7 @@ from pygame.locals import (
     QUIT,
     K_SPACE
 )
-
+#from pygame.music import play
 
 # Define constants for the screen width and height
 SCREEN_WIDTH = 800
@@ -166,6 +166,48 @@ class Explosion(pygame.sprite.Sprite):
         if self.lifetime <= 0: # When lifetime runs out, remove explosion
             self.kill()
 
+#This enemy is much faster than the player and can fire but can only move up and down
+class Gunner(pygame.sprite.Sprite):
+    """ Extends pygame.sprite.Sprite class and handles aspects specific to Gunner """
+    def __init__(self, x, gunner_move_up):
+        super(Gunner, self).__init__()
+        self.surf = pygame.image.load("spitfire_gunner.png").convert()
+        self.surf.set_colorkey((255, 255, 255), RLEACCEL)
+        self.rect = self.surf.get_rect(
+            center=(
+                x,
+                random.randint(0, SCREEN_HEIGHT),
+            )
+        )
+        self.move_up = gunner_move_up # If gunner should move up or not
+        
+    def update(self):
+        # If Gunner should move up or not is changed when certain values are reached
+        if self.rect.bottom == SCREEN_HEIGHT:
+            self.move_up = True
+        if self.rect.top == 0:
+            self.move_up = False
+
+        # Makes gunner fly in on screen
+        if self.rect.left > 650:
+            self.rect.move_ip(round(-3 * step), 0)
+        # Moves gunner move up or down 
+        elif self.move_up == True:
+            self.rect.move_ip(0, round(-6 * step))
+        else:
+            self.rect.move_ip(0, round(6 * step))
+
+        # Keep gunner on the screen
+        if self.rect.left < 0:
+            self.rect.left = 0
+        elif self.rect.right > SCREEN_WIDTH:
+            self.rect.right = SCREEN_WIDTH
+        if self.rect.top <= 0:
+            self.rect.top = 0
+        elif self.rect.bottom >= SCREEN_HEIGHT:
+            self.rect.bottom = SCREEN_HEIGHT
+                        
+
 
 class Boss(pygame.sprite.Sprite):
     """ Extends pygame.sprite.Sprite class and handles aspects specific to Boss """
@@ -180,7 +222,7 @@ class Boss(pygame.sprite.Sprite):
         # If boss should move up or not is changed when certian values are reached
         if self.rect.bottom == 650:
             self.move_up = True
-        if self.rect.top == -50:
+        if self.rect.top == 50:
             self.move_up = False
 
         # Makes boss fly in on screen
@@ -204,6 +246,7 @@ def reset():
     bullets.empty()
     explosions.empty()
     boss.empty()
+    gunner.empty()
     all_sprites.empty()
 
     # Reset player data
@@ -248,6 +291,7 @@ clouds = pygame.sprite.Group()
 bullets = pygame.sprite.Group()
 explosions = pygame.sprite.Group()
 boss = pygame.sprite.Group()
+gunner = pygame.sprite.Group()
 all_sprites = pygame.sprite.Group()
 all_sprites.add(player)
 
@@ -271,8 +315,12 @@ collision_sound.set_volume(0.5)
 # Variable to keep our main loop running
 running = True
 score_screen = False
-# Variable used when boss spawns
+# Variable used when enemies spawns
 boss_exists = False
+gunner_exists = False
+gunner_count = 0
+
+start=pygame.time.get_ticks()
 
 # Our main loop
 while running:
@@ -321,6 +369,9 @@ while running:
     # Update the boss
     boss.update()
 
+    # Update Gunner
+    gunner.update()
+
     # Fill the screen with sky blue
     screen.fill((135, 206, 250))
 
@@ -330,10 +381,16 @@ while running:
 
     # Check if any enemies have collided with the player
     player_col = pygame.sprite.spritecollide(player, enemies, True)
-    
-    if player_col:
+
+    enemy_col = pygame.sprite.spritecollide(player, gunner, True)
+
+    if player_col or enemy_col:
         # If so, reduce the player's HP
-        player.health -= 1
+        if player_col:
+            player.health -= 1
+        elif enemy_col:
+            player.health = 0
+
         collision_sound.play()
 
         new_explosion = Explosion(player.rect.center, .25)
@@ -354,8 +411,17 @@ while running:
             player = reset()
             score_screen = True
 
+
     # Check if any bullets have collided with an enemy and removes both if so
     bullet_col = pygame.sprite.groupcollide(bullets, enemies, True, True)
+    gunner_col = pygame.sprite.groupcollide(bullets, gunner, True, True)
+    
+
+    if gunner_col:
+        collision_sound.play()
+        gunner_count -=1
+        explosions.add(new_explosion)
+        all_sprites.add(new_explosion)
 
     # For every collision, create an explosion at give position
     for bullet in bullet_col.keys():
@@ -366,14 +432,24 @@ while running:
         player.score += 10
         print(player.score)
 
-    # Creates boss at fixed position when plyer.score reaches 10
-    if boss_exists == False and player.score == 10:
+
+    now = pygame.time.get_ticks()
+    # Creates a new gunner every 5 seconds and a maximum of 6 at once
+    if now - start > 5000 and gunner_count < 6:
+        start = now
+        spawn_gunner = Gunner(1000, False)
+        gunner.add(spawn_gunner)
+        all_sprites.add(spawn_gunner)
+        gunner_count +=1 #Add gunner count to represent capacity to gunner maximum
+
+    # Creates boss at fixed position when plyer.score reaches 200
+    if boss_exists == False and player.score == 200:
         spawn_boss = Boss(1000, 300, False)
         boss.add(spawn_boss)
         all_sprites.add(spawn_boss)
         # to make sure multible bosses doesn't spawn
-        boss_exists = True
-        
+        boss_exists = True 
+
     # Flip everything to the display
     pygame.display.flip()
 
