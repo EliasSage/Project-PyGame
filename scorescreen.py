@@ -21,24 +21,27 @@ def write_to_screen(screen, msg, y_displacement=0):
     screen.blit(textSurface, textRect)
 
 
-def display_screen(screen, score):
+def display_screen(screen, score, won):
     # Handle events for quit and return to game
     for event in pygame.event.get():
         if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
             # Return values for score_screen and running variables in main file
-            return (False, False)
+            return (False, False, False)
 
         if event.type == KEYDOWN and event.key == K_RETURN:
-            return (False, True)
+            return (False, True, False)
 
     # Fill screen with black
     screen.fill((0, 0, 0))
 
-    write_to_screen(screen, "GAME OVER", -50)
+    if won:
+        write_to_screen(screen, "YOU WIN", -50)
+    else:
+        write_to_screen(screen, "GAME OVER", -50)
     write_to_screen(screen, f'Score: {score}', 50)
     write_to_screen(screen, "Press enter to continue", screen.get_height()/2 - font.get_linesize())
 
     pygame.display.flip()
     clock.tick(FRAMERATE)
 
-    return (True, True)
+    return (True, True, won)

@@ -358,6 +358,7 @@ collision_sound.set_volume(0.5)
 # Variable to keep our main loop running
 running = True
 score_screen = False
+won = False
 # Variable used when enemies spawns
 boss_exists = False
 gunner_exists = False
@@ -369,7 +370,7 @@ start=pygame.time.get_ticks()
 while running:
     # Code that runs during score screen
     while score_screen:
-        (score_screen, running) = scorescreen.display_screen(screen, final_score)
+        (score_screen, running, won) = scorescreen.display_screen(screen, final_score, won)
 
     # Look at every event in the queue
     for event in pygame.event.get():
@@ -481,12 +482,6 @@ while running:
 
             powerups.add(powerup)
             all_sprites.add(powerup)
-
-    # Spawn powerup 
-    if random.randint(1, 10) >= 9:
-        powerup = PowerUp(bullet.rect.center)
-        powerups.add(powerup)
-        all_sprites.add(powerup)
         
     powerup_col = pygame.sprite.spritecollide(player, powerups, True)
 
@@ -524,6 +519,7 @@ while running:
 
         if spawn_boss.health <= 0:
             player.score += 500
+            won = True
 
             spawn_boss.kill()
             player.kill()
