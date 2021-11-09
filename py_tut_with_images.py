@@ -25,7 +25,7 @@ SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 
 # Define framerate 
-# Higher values (300+) may cause issues with movement
+# Higher values may cause issues with movement
 FRAMERATE = 60
 
 # Define the Player object extending pygame.sprite.Sprite
@@ -191,7 +191,26 @@ class Boss(pygame.sprite.Sprite):
             self.rect.move_ip(round(0),-2 * step)
         else:
             self.rect.move_ip(round(0),2 * step)
-                        
+
+
+class PowerUp(pygame.sprite.Sprite):
+    def __init__(self, position):
+        super(PowerUp, self).__init__()
+        self.surf = pygame.image.load("health.png").convert()
+        self.surf.set_colorkey((0, 0, 0), RLEACCEL)
+        self.rect = self.surf.get_rect(center=(position))
+        self.lifetime = 3
+
+    def heal(self):
+        """ Heal player when picked up """
+        player.health += 1
+
+    def update(self):
+        self.lifetime -= 1/FRAMERATE if self.lifetime > 0 else self.lifetime
+
+        if self.lifetime <= 0: # When lifetime runs out, remove explosion
+            self.kill()
+
 
 def reset():
     """ Resets game data and returns new player object """
@@ -248,6 +267,7 @@ clouds = pygame.sprite.Group()
 bullets = pygame.sprite.Group()
 explosions = pygame.sprite.Group()
 boss = pygame.sprite.Group()
+powerups = pygame.sprite.Group()
 all_sprites = pygame.sprite.Group()
 all_sprites.add(player)
 
@@ -310,15 +330,12 @@ while running:
     pressed_keys = pygame.key.get_pressed()
     player.update(pressed_keys)
 
-    # Update the position of our enemies and clouds
+    # Updates 
     enemies.update()
     clouds.update()
-
-    # Update the bullets and explosions
     bullets.update()
     explosions.update()
-
-    # Update the boss
+    powerups.update()
     boss.update()
 
     # Fill the screen with sky blue
@@ -357,7 +374,7 @@ while running:
     # Check if any bullets have collided with an enemy and removes both if so
     bullet_col = pygame.sprite.groupcollide(bullets, enemies, True, True)
 
-    # For every collision, create an explosion at give position
+    # For every collision, create an explosion at given position
     for bullet in bullet_col.keys():
         new_explosion = Explosion(bullet.rect.center, .5)
         explosions.add(new_explosion)
@@ -365,6 +382,18 @@ while running:
 
         player.score += 10
         print(player.score)
+
+        # Spawn powerup 
+        if random.randint(1, 10) >= 9:
+            powerup = PowerUp(bullet.rect.center)
+            powerups.add(powerup)
+            all_sprites.add(powerup)
+
+    powerup_col = pygame.sprite.spritecollide(player, powerups, True)
+
+    if powerup_col:
+        for powerup in powerup_col:
+            powerup.heal()
 
     # Creates boss at fixed position when plyer.score reaches 10
     if boss_exists == False and player.score == 10:
