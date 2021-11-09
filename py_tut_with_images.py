@@ -24,7 +24,6 @@ from pygame.locals import (
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 
-display = pygame.display.set_mode((SCREEN_HEIGHT, SCREEN_WIDTH))
 # Define framerate 
 # Higher values may cause issues with movement
 FRAMERATE = 60
@@ -219,6 +218,7 @@ class Boss(pygame.sprite.Sprite):
         self.rect = self.surf.get_rect(center=(x, y)) # x and y set when boss is created
         self.move_up = boss_move_up # If boss should move up or not
         self.health = health
+        self.cooldown = 3
     
     def update(self):
         # If boss should move up or not is changed when certian values are reached
@@ -235,6 +235,30 @@ class Boss(pygame.sprite.Sprite):
             self.rect.move_ip(0,round(-2 * step))
         else:
             self.rect.move_ip(0,round(2 * step))
+
+        if self.cooldown <= 0:
+            attack= Attack(800, player.rect.top, -20)
+            boss_attack.add(attack)
+            all_sprites.add(attack)
+            self.cooldown = 3
+        
+        self.cooldown -= 1/FRAMERATE if self.cooldown > 0 else self.cooldown
+
+
+class Attack(pygame.sprite.Sprite):
+    def __init__(self, position_x, position_y, velocity):
+        super(Attack, self).__init__()
+        self.surf = pygame.image.load("boss_attack1.png").convert()
+        self.surf.set_colorkey((255,255,255), RLEACCEL)
+        self.rect = self.surf.get_rect(center=(position_x, position_y))
+        self.velocity = velocity
+        print(1)
+    
+    def update(self):
+       self.rect.move_ip(round(self.velocity * step), 0) 
+
+       """ if self.rect.right < 0:
+            self.kill() """
 
 class PowerUp(pygame.sprite.Sprite):
     def __init__(self, power, position):
@@ -286,6 +310,7 @@ def reset():
     bullets.empty()
     explosions.empty()
     boss.empty()
+    boss_attack.empty()
     gunner.empty()
     all_sprites.empty()
 
@@ -333,6 +358,7 @@ clouds = pygame.sprite.Group()
 bullets = pygame.sprite.Group()
 explosions = pygame.sprite.Group()
 boss = pygame.sprite.Group()
+boss_attack = pygame.sprite.Group()
 gunner = pygame.sprite.Group()
 powerups = pygame.sprite.Group()
 all_sprites = pygame.sprite.Group()
@@ -409,6 +435,7 @@ while running:
     explosions.update()
     powerups.update()
     boss.update()
+    boss_attack.update()
 
     # Update Gunner
     gunner.update()
@@ -422,7 +449,7 @@ while running:
 
     # Check if any enemies have collided with the player
     player_col = pygame.sprite.spritecollide(player, enemies, True)
-
+    player_col = pygame.sprite.spritecollide(player, boss_attack, True)
     # Check if player has collided with gunner
     gunner_col = pygame.sprite.spritecollide(player, gunner, True)
 
@@ -503,18 +530,18 @@ while running:
         gunner_count +=1 #Add gunner count to represent capacity to gunner maximum
 
     # Creates boss at fixed position when plyer.score reaches 10
-    if boss_exists == False and player.score == 200:
+    if not boss_exists and player.score == 10:
         the_boss = Boss(1000, 300, False, 50)
         boss.add(the_boss)
         all_sprites.add(the_boss)
         # to make sure multible bosses doesn't spawn
         boss_exists = True
 
-    if boss_exists == True:
-        pygame.draw.rect(display, (0,0,0), (195, 550, 412.5, 17 ))
-        pygame.draw.rect(display, (255,0,0), (195, 550, the_boss.health*8.25, 17 ))
+    if boss_exists:
+        pygame.draw.rect(screen, (0,0,0), (195, 550, 412.5, 17 ))
+        pygame.draw.rect(screen, (255,0,0), (195, 550, the_boss.health*8.25, 17 ))
         healthbar = pygame.image.load("healthbar.png").convert_alpha()
-        display.blit(healthbar, [185, 544])
+        screen.blit(healthbar, [185, 544])
 
     
     boss_col = pygame.sprite.groupcollide(bullets, boss, True, False)
