@@ -4,6 +4,8 @@ import pygame
 # Import random for random numbers
 import random
 
+import math
+
 # Import pygame.locals for easier access to key coordinates
 # Updated to conform to flake8 and black standards
 # from pygame.locals import *
@@ -172,15 +174,15 @@ class Boss(pygame.sprite.Sprite):
     def __init__(self, x, y, boss_move_up):
         super(Boss, self).__init__()
         self.surf = pygame.image.load("boss.png").convert_alpha()
-        self.surf.set_colorkey((0, 0, 0), RLEACCEL)
         self.rect = self.surf.get_rect(center=(x, y)) # x and y set when boss is created
         self.move_up = boss_move_up # If boss should move up or not
+        self.health = 5
     
     def update(self):
         # If boss should move up or not is changed when certian values are reached
-        if self.rect.bottom == 650:
+        if self.rect.bottom >= 650:
             self.move_up = True
-        if self.rect.top == -50:
+        if self.rect.top <= -50:
             self.move_up = False
 
         # Makes boss fly in on screen
@@ -188,7 +190,7 @@ class Boss(pygame.sprite.Sprite):
             self.rect.move_ip(round(-2 * step), 0)
         # Moves boss up or down 
         elif self.move_up == True:
-            self.rect.move_ip(round(0),-2 * step)
+            self.rect.move_ip(0,round(-2 * step))
         else:
             self.rect.move_ip(round(0),2 * step)
 
@@ -211,6 +213,8 @@ class PowerUp(pygame.sprite.Sprite):
         if self.lifetime <= 0: # When lifetime runs out, remove explosion
             self.kill()
 
+            self.rect.move_ip(0,round(2 * step))
+                                    
 
 def reset():
     """ Resets game data and returns new player object """
@@ -347,7 +351,9 @@ while running:
 
     # Check if any enemies have collided with the player
     player_col = pygame.sprite.spritecollide(player, enemies, True)
-    
+    # Check if player has collided with boss
+    playerboss_col = pygame.sprite.spritecollide(player, boss, False)
+
     if player_col:
         # If so, reduce the player's HP
         player.health -= 1
@@ -357,19 +363,19 @@ while running:
         explosions.add(new_explosion)
         all_sprites.add(new_explosion)
 
-        # If out of HP, end game
-        if player.health <= 0:
-            player.kill()
+    # If out of HP or collided with boss, end game
+    if player.health <= 0 or playerboss_col:
+        player.kill()
 
-            # Stop any moving sounds and play the collision sound
-            move_up_sound.stop()
-            move_down_sound.stop()
-            collision_sound.play()
+        # Stop any moving sounds and play the collision sound
+        move_up_sound.stop()
+        move_down_sound.stop()
+        collision_sound.play()
 
-            # Go to score screen and reset game
-            final_score = player.score
-            player = reset()
-            score_screen = True
+        # Go to score screen and reset game
+        final_score = player.score
+        player = reset()
+        score_screen = True
 
     # Check if any bullets have collided with an enemy and removes both if so
     bullet_col = pygame.sprite.groupcollide(bullets, enemies, True, True)
@@ -402,6 +408,31 @@ while running:
         all_sprites.add(spawn_boss)
         # to make sure multible bosses doesn't spawn
         boss_exists = True
+
+    boss_col = pygame.sprite.groupcollide(bullets, boss, True, False)
+
+    for bullet in boss_col.keys():
+        new_explosion = Explosion(bullet.rect.center, .25)
+        explosions.add(new_explosion)
+        all_sprites.add(new_explosion)
+
+    if boss_col:
+
+        spawn_boss.health -= 1
+
+        if spawn_boss.health <= 0:
+            player.score += 500
+
+            spawn_boss.kill()
+            player.kill()
+
+            move_up_sound.stop()
+            move_down_sound.stop()
+            collision_sound.play()
+
+            final_score = player.score
+            player = reset()
+            score_screen = True
         
     # Flip everything to the display
     pygame.display.flip()
@@ -409,7 +440,7 @@ while running:
     # Ensure we maintain a FRAMERATE frames per second rate
     delta = clock.tick(FRAMERATE)
     step = delta / 25 # Can be tweaked to change velocities
-
+    
 # At this point, we're done, so we can stop and quit the mixer
 pygame.mixer.music.stop()
 pygame.mixer.quit()
