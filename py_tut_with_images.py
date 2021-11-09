@@ -40,14 +40,15 @@ class Player(pygame.sprite.Sprite):
         self.rect = self.surf.get_rect()
 
         self.health = 3
-        self.bullet_timer = 1 # Shooting cooldown (in seconds)
+        self.cooldown = 1
+        self.bullet_timer = self.cooldown # Shooting cooldown (in seconds)
         self.score = 0
 
 
     def shoot(self, position, velocity):
         """ Makes plane shoot missile """
         if self.bullet_timer <= 0: # Shoots if not on cooldown      
-            self.bullet_timer = 1 # Resets cooldown 
+            self.bullet_timer = self.cooldown # Resets cooldown 
             bullet = Bullet(position, velocity)
             bullets.add(bullet)
             all_sprites.add(bullet)
@@ -238,24 +239,42 @@ class Boss(pygame.sprite.Sprite):
 
 
 class PowerUp(pygame.sprite.Sprite):
-    def __init__(self, position):
+    def __init__(self, power, position):
         super(PowerUp, self).__init__()
-        self.surf = pygame.image.load("health.png").convert()
+        self.power = power
+
+        if self.power == "HP":
+            self.surf = pygame.image.load("health.png").convert()
+        elif self.power == "DMG":
+            self.surf = pygame.image.load("ammo.png").convert()
+
         self.surf.set_colorkey((0, 0, 0), RLEACCEL)
         self.rect = self.surf.get_rect(center=(position))
+        self.activated = False
+        self.timer = 0
         self.lifetime = 3
 
-    def heal(self):
-        """ Heal player when picked up """
-        player.health += 1
+    def activate(self):
+        if self.power == "HP":
+            player.health += 1
+        elif self.power == "DMG":
+            self.activated = True
+            self.timer = 4
+            player.bullet_timer = 0
+            player.cooldown = 0.3
+
+    def deactivate(self):
+        player.cooldown = 1
 
     def update(self):
         self.lifetime -= 1/FRAMERATE if self.lifetime > 0 else self.lifetime
+        self.timer -= 1/FRAMERATE if self.timer > 0 else self.timer
+
+        if self.timer <= 0:
+            self.deactivate()
 
         if self.lifetime <= 0: # When lifetime runs out, remove explosion
             self.kill()
-
-            self.rect.move_ip(0,round(2 * step))
                                     
 
 def reset():
@@ -452,6 +471,16 @@ while running:
         player.score += 10
         print(player.score)
 
+        # Spawn powerup 
+        if random.randint(1, 10) >= 9:
+            power = random.randint(1, 2)
+            if power == 1:
+                powerup = PowerUp("HP", bullet.rect.center)
+            elif power == 2:
+                powerup = PowerUp("DMG", bullet.rect.center)
+
+            powerups.add(powerup)
+            all_sprites.add(powerup)
 
     # Spawn powerup 
     if random.randint(1, 10) >= 9:
@@ -463,7 +492,7 @@ while running:
 
     if powerup_col:
         for powerup in powerup_col:
-            powerup.heal()
+            powerup.activate()
     
     now = pygame.time.get_ticks()
     # Creates a new gunner every 5 seconds and a maximum of 6 at once
