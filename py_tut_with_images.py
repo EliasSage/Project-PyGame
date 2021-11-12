@@ -37,7 +37,7 @@ class Player(pygame.sprite.Sprite):
         self.surf.set_colorkey((255, 255, 255), RLEACCEL)
         self.rect = self.surf.get_rect()
 
-        self.health = 3
+        self.health = 5
         self.cooldown = 1
         self.bullet_timer = self.cooldown # Shooting cooldown (in seconds)
         self.score = 0
@@ -447,14 +447,14 @@ while running:
 
     # Check if any enemies or the boss attack have collided with the player
     player_col = pygame.sprite.spritecollide(player, enemies, True)
-    playerboss_col = pygame.sprite.spritecollide(player, boss_attack, True)
+    playerboss_attack_col = pygame.sprite.spritecollide(player, boss_attack, True)
     # Check if player has collided with gunner
     gunner_col = pygame.sprite.spritecollide(player, gunner, True)
 
     # Check if player has collided with boss
     playerboss_col = pygame.sprite.spritecollide(player, boss, False)
 
-    if player_col or playerboss_col:
+    if player_col or playerboss_attack_col:
         # If so, reduce the player's HP
         player.health -= 1
         collision_sound.play()
