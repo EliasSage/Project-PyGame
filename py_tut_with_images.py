@@ -511,7 +511,7 @@ while running:
     # Creates a new gunner every 5 seconds and a maximum of 6 at once
     if now - start > 5000 and gunner_count < 6:
         start = now
-        spawn_gunner = Gunner(1000, False)
+        spawn_gunner = Gunner(SCREEN_WIDTH+200, False)
         gunner.add(spawn_gunner)
         all_sprites.add(spawn_gunner)
         gunner_count +=1 #Add gunner count to represent capacity to gunner maximum
