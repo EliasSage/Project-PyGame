@@ -476,6 +476,7 @@ while running:
 
     for bullet in gunner_col.keys():
         player.score += 20
+        print(player.score)
         collision_sound.play()
         gunner_count -=1
         new_explosion = Explosion(bullet.rect.center, .5)
@@ -487,7 +488,7 @@ while running:
         new_explosion = Explosion(bullet.rect.center, .5)
         explosions.add(new_explosion)
         all_sprites.add(new_explosion)
-
+        player.score += 10
         print(player.score)
 
         # Spawn powerup 
