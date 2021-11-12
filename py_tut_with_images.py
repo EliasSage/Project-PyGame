@@ -268,13 +268,14 @@ class PowerUp(pygame.sprite.Sprite):
         self.surf.set_colorkey((0, 0, 0), RLEACCEL)
         self.rect = self.surf.get_rect(center=(position))
         self.activated = False
-        self.timer = 0
+        self.timer = 10
         self.lifetime = 3
 
     def activate(self):
         if self.power == "HP":
             player.health += 1
         elif self.power == "DMG":
+            print("yo")
             self.activated = True
             self.timer = 4
             player.bullet_timer = 0
@@ -282,6 +283,7 @@ class PowerUp(pygame.sprite.Sprite):
 
     def deactivate(self):
         player.cooldown = 1
+        self.activated = False
 
     def update(self):
         self.lifetime -= 1/FRAMERATE if self.lifetime > 0 else self.lifetime
@@ -290,7 +292,7 @@ class PowerUp(pygame.sprite.Sprite):
         if self.timer <= 0:
             self.deactivate()
 
-        if self.lifetime <= 0: # When lifetime runs out, remove explosion
+        if self.lifetime <= 0 and not self.activated: # When lifetime runs out, remove explosion
             self.kill()
                                     
 
@@ -509,11 +511,12 @@ while running:
             powerups.add(powerup)
             all_sprites.add(powerup)
         
-    powerup_col = pygame.sprite.spritecollide(player, powerups, True)
+    powerup_col = pygame.sprite.spritecollide(player, powerups, False)
 
     if powerup_col:
         for powerup in powerup_col:
             powerup.activate()
+            powerup.rect.center = (-100, -100)
     
     now = pygame.time.get_ticks()
     # Creates a new gunner every 5 seconds and a maximum of 6 at once
@@ -538,32 +541,33 @@ while running:
         healthbar = pygame.image.load("healthbar.png").convert_alpha()
         screen.blit(healthbar, [185, 544])
 
-    # Checks if bulllets have collided with boss
-    boss_col = pygame.sprite.groupcollide(bullets, boss, True, False)
-    # Creates explosion if so 
-    for bullet in boss_col.keys():
-        new_explosion = Explosion(bullet.rect.center, .25)
-        explosions.add(new_explosion)
-        all_sprites.add(new_explosion)
-    
-    if boss_col:
-        the_boss.health -= 1 # Reduses boss health if so
-        # If boss health reaches zero 
-        if the_boss.health <= 0:
-            player.score += 500
-            won = True # So you win will be displayed on score screen
+    if boss_exists:
+        for bullet in bullets:
+            boss_col = pygame.sprite.spritecollide(bullet, boss, False, pygame.sprite.collide_mask)
 
-            the_boss.kill()
-            player.kill()
+            if boss_col:
+                new_explosion = Explosion(bullet.rect.center, .25)
+                explosions.add(new_explosion)
+                all_sprites.add(new_explosion)
+                bullet.kill()
 
-            move_up_sound.stop()
-            move_down_sound.stop()
-            collision_sound.play()
+                the_boss.health -= 1
 
-            final_score = player.score
-            boss_exists = False
-            player = reset()
-            score_screen = True
+                if the_boss.health <= 0:
+                    player.score += 500
+                    won = True
+
+                    the_boss.kill()
+                    player.kill()
+
+                    move_up_sound.stop()
+                    move_down_sound.stop()
+                    collision_sound.play()
+
+                    final_score = player.score
+                    boss_exists = False
+                    player = reset()
+                    score_screen = True
         
     # Flip everything to the display
     pygame.display.flip()
