@@ -185,9 +185,9 @@ class Gunner(pygame.sprite.Sprite):
         
     def update(self):
         # If Gunner should move up or not is changed when certain values are reached
-        if self.rect.bottom == SCREEN_HEIGHT:
+        if self.rect.bottom >= SCREEN_HEIGHT:
             self.move_up = True
-        if self.rect.top == 0:
+        if self.rect.top <= 0:
             self.move_up = False
 
         # Makes gunner fly in on screen
@@ -198,18 +198,6 @@ class Gunner(pygame.sprite.Sprite):
             self.rect.move_ip(0, round(-6 * step))
         else:
             self.rect.move_ip(0, round(6 * step))
-
-        # Keep gunner on the screen
-        if self.rect.left < 0:
-            self.rect.left = 0
-        elif self.rect.right > SCREEN_WIDTH:
-            self.rect.right = SCREEN_WIDTH
-        if self.rect.top <= 0:
-            self.rect.top = 0
-        elif self.rect.bottom >= SCREEN_HEIGHT:
-            self.rect.bottom = SCREEN_HEIGHT
-                        
-
 
 class Boss(pygame.sprite.Sprite):
     """ Extends pygame.sprite.Sprite class and handles aspects specific to Boss """
