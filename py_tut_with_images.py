@@ -227,7 +227,7 @@ class Boss(pygame.sprite.Sprite):
             self.rect.move_ip(0,round(2 * step))
         # When cooldown is 0 spawns a attack from attack class on players y value 
         if self.cooldown <= 0:
-            attack= Attack(800, player.rect.top, -20)
+            attack= Attack(800, player.rect.top, -15)
             boss_attack.add(attack)
             all_sprites.add(attack)
             self.cooldown = 3 # Resets the cooldown
@@ -438,14 +438,14 @@ while running:
 
     # Check if any enemies or the boss attack have collided with the player
     player_col = pygame.sprite.spritecollide(player, enemies, True)
-    player_col = pygame.sprite.spritecollide(player, boss_attack, True)
+    playerboss_col = pygame.sprite.spritecollide(player, boss_attack, True)
     # Check if player has collided with gunner
     gunner_col = pygame.sprite.spritecollide(player, gunner, True)
 
     # Check if player has collided with boss
     playerboss_col = pygame.sprite.spritecollide(player, boss, False)
 
-    if player_col:
+    if player_col or playerboss_col:
         # If so, reduce the player's HP
         player.health -= 1
         collision_sound.play()
@@ -512,13 +512,13 @@ while running:
     # Creates a new gunner every 5 seconds and a maximum of 6 at once
     if now - start > 5000 and gunner_count < 6:
         start = now
-        spawn_gunner = Gunner(1000, False)
+        spawn_gunner = Gunner(SCREEN_WIDTH+200, False)
         gunner.add(spawn_gunner)
         all_sprites.add(spawn_gunner)
         gunner_count +=1 #Add gunner count to represent capacity to gunner maximum
 
     # Creates boss at fixed position when plyer.score reaches 10
-    if not boss_exists and player.score == 200:
+    if not boss_exists and player.score >= 200:
         the_boss = Boss(1000, 300, False, 50)
         boss.add(the_boss)
         all_sprites.add(the_boss)
