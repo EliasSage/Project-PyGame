@@ -58,15 +58,15 @@ class Player(pygame.sprite.Sprite):
     # Multiply velocity by step to make it independent of framerate (as much as possible)
     def update(self, pressed_keys):
         if pressed_keys[K_UP]:
-            self.rect.move_ip(0, round(-5 * step))
+            self.rect.move_ip(0, round(-6 * step))
             move_up_sound.play()
         if pressed_keys[K_DOWN]:
-            self.rect.move_ip(0, round(5 * step))
+            self.rect.move_ip(0, round(6 * step))
             move_down_sound.play()
         if pressed_keys[K_LEFT]:
-            self.rect.move_ip(round(-5 * step), 0)
+            self.rect.move_ip(round(-6 * step), 0)
         if pressed_keys[K_RIGHT]:
-            self.rect.move_ip(round(5 * step), 0)
+            self.rect.move_ip(round(6 * step), 0)
 
         # Keep player on the screen
         if self.rect.left < 0:
@@ -91,7 +91,7 @@ class Player(pygame.sprite.Sprite):
 class Enemy(pygame.sprite.Sprite):
     def __init__(self):
         super(Enemy, self).__init__()
-        self.surf = pygame.image.load("missile.png").convert()
+        self.surf = pygame.image.load("paper_plane.png").convert_alpha()
         self.surf.set_colorkey((255, 255, 255), RLEACCEL)
         # The starting position is randomly generated, as is the speed
         self.rect = self.surf.get_rect(
@@ -100,12 +100,18 @@ class Enemy(pygame.sprite.Sprite):
                 random.randint(0, SCREEN_HEIGHT),
             )
         )
-        self.speed = random.randint(5, 20)
+        self.speed = random.randint(5, 15)
+        self.direction = random.choice([1, -1]) # 1 = up, -1 = down
 
     # Move the enemy based on speed
+    # Change up/down direction when it reaches edge of screen
     # Remove it when it passes the left edge of the screen
     def update(self):
-        self.rect.move_ip(round(-self.speed * step), 0)
+        self.rect.move_ip(round(-self.speed * step), round(self.direction * step))
+        if self.rect.top < 0:
+            self.direction = 1
+        if self.rect.bottom > SCREEN_HEIGHT:
+            self.direction = -1
         if self.rect.right < 0:
             self.kill()
 
@@ -428,6 +434,7 @@ while running:
 
     # Update Gunner
     gunner.update()
+
 
     # Fill the screen with sky blue
     screen.fill((135, 206, 250))
