@@ -191,7 +191,7 @@ class Gunner(pygame.sprite.Sprite):
             self.move_up = False
 
         # Makes gunner fly in on screen
-        if self.rect.left > 550:
+        if self.rect.left > SCREEN_WIDTH - 150:
             self.rect.move_ip(round(-3 * step), 0)
         # Moves gunner move up or down 
         elif self.move_up == True:
